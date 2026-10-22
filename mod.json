@@ -1,0 +1,69 @@
+{
+	"geode": "5.11.2",
+	"gd": {
+		"win": "2.2091",
+		"android": "2.2091",
+		"mac": "2.2091",
+		"ios": "2.2091"
+	},
+	"id": "nwo5.humanslop-editor-windows",
+	"name": "Humanslop Editor Windows",
+	"version": "v1.0.0",
+	"developer": "nwo5",
+	"description": "100% humanslop editor windows without claude",
+	"resources": {
+		"sprites": [
+			"resources/*.png"
+		]
+	},
+	"dependencies": {
+		"nwo5.silly-api": ">=3.0.0"
+	},
+	"tags": ["universal", "editor", "interface", "enhancement", "customization"],
+	"links": {
+		"source": "https://github.com/Nwo5-trg/Humanslop-Editor-Windows",
+		"community": "https://discord.gg/AeFeYWGUxZ"
+	},
+	"settings": {
+		"enabled": {
+			"type": "bool",
+			"name": "Enabled",
+			"default": true
+		},
+		"background-color": {
+			"type": "rgb",
+			"name": "Background Color",
+			"default": [150, 150, 150]
+		},
+		"top-bar-color": {
+			"type": "rgb",
+			"name": "Top Bar Color",
+			"default": [100, 100, 100]
+		},
+		"opacity": {
+			"type": "int",
+			"default": 200,
+			"min": 0,
+			"max": 255
+		},
+		"always-show-resize-corners": {
+			"type": "bool",
+			"name": "Always Show Resize Corners",
+			"default": false,
+			"description": "by default resize corners are only visible on hover (meaning they are completely invisible on mobile), this makes them always show"
+		},
+		"no-top-separator": {
+			"type": "bool",
+			"name": "No Top Separator",
+			"default": false,
+			"description": "remove the black line separating the top bar from the bottom bar"
+		},
+		"close-button-scale": {
+			"type": "float",
+			"name": "Close Button Scale",
+			"default": 0.5,
+			"min": 0.25,
+			"max": 2
+		}
+	}
+}
