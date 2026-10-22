@@ -42,6 +42,7 @@
 		},
 		"opacity": {
 			"type": "int",
+			"name": "Opacity",
 			"default": 200,
 			"min": 0,
 			"max": 255
@@ -51,6 +52,13 @@
 			"name": "Always Show Resize Corners",
 			"default": false,
 			"description": "by default resize corners are only visible on hover (meaning they are completely invisible on mobile), this makes them always show"
+		},
+		"corner-opacity": {
+			"type": "int",
+			"name": "Corner Opacity",
+			"default": 150,
+			"min": 0,
+			"max": 255
 		},
 		"no-top-separator": {
 			"type": "bool",

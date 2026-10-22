@@ -89,19 +89,30 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             [] { return CCEaseBounceOut::create(CCScaleTo::create(0.4f, settings::closeButtonScale * BUTTON_SCALE_FACTOR)); }
         );
 
-        const auto mousePos = this->m_mainLayer->convertToNodeSpace(cocos::getMousePos());
-
         fields->leftCorner->setPosition(ui::bottomLeft(m_background) - CORNER_OFFSET);
-        toggleAction(
-            mousePos.fuzzyEquals(ui::bottomLeft(m_background), 12.0f / 2) && !fields->mouseDown, fields->leftCorner,
-            [] { return CCFadeTo::create(0.25f, 0); }, [] { return CCFadeTo::create(0.25f, 150); }, !fields->mouseDown
-        );
-
         fields->rightCorner->setPosition(ui::right(m_background).x + CORNER_OFFSET, ui::bottom(m_background).y - CORNER_OFFSET);
-        toggleAction(
-            mousePos.fuzzyEquals({ui::bottomRight(m_background)}, 12.0f / 2) && !fields->mouseDown, fields->rightCorner,
-            [] { return CCFadeTo::create(0.25f, 0); }, [] { return CCFadeTo::create(0.25f, 150); }, !fields->mouseDown
-        );
+
+        if (settings::alwaysShowResizeCorners) {
+            Setup(fields->leftCorner)
+                .userFlag("selected"_spr, true)
+                .opacity(settings::cornerOpacity.get());
+
+            Setup(fields->rightCorner)
+                .userFlag("selected"_spr, true)
+                .opacity(settings::cornerOpacity.get());
+        }
+        else {
+            const auto mousePos = this->m_mainLayer->convertToNodeSpace(cocos::getMousePos());
+
+            toggleAction(
+                mousePos.fuzzyEquals(ui::bottomLeft(m_background), 12.0f / 2) && !fields->mouseDown, fields->leftCorner,
+                [] { return CCFadeTo::create(0.25f, 0); }, [] { return CCFadeTo::create(0.25f, settings::cornerOpacity); }, !fields->mouseDown
+            );
+            toggleAction(
+                mousePos.fuzzyEquals({ui::bottomRight(m_background)}, 12.0f / 2) && !fields->mouseDown, fields->rightCorner,
+                [] { return CCFadeTo::create(0.25f, 0); }, [] { return CCFadeTo::create(0.25f, settings::cornerOpacity); }, !fields->mouseDown
+            );
+        }
     }
 
     bool initWindow(EditorUI* editorUI, float width, float height, int windowID, int unused) {
@@ -109,11 +120,13 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             return false;
         }
 
+        if (!settings::enabled) {
+            return true;
+        }
+
         auto fields = m_fields.self();
 
-        m_background = this->m_mainLayer->getChildByType<CCScale9Sprite>();
-
-        const auto size = m_background->getContentSize();
+        const auto size = ui::size(m_background);
         auto texture = CCTextureCache::get()->addImage(settings::noTopSeparator ? "background-no-line.png"_spr : "background.png"_spr, false);
         m_background->setSpriteFrame(
             CCSpriteFrame::createWithTexture(texture, {CCPointZero, texture->getContentSize()})
@@ -171,9 +184,12 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             )
             .parent(m_mainLayer);
 
-        this->addOnEnterCallback([this, fields] {
-            m_scrollLayer->addChild(fields->scrollbar);
-        });
+        fields->scrollbar = ui::nineSlice("scrollbar.png"_spr)
+            .anchor(Anchor::TopRight)
+            .order(10)
+            .opacity(125)
+            .scaleMultiplier(0.25f)
+            .parent(m_scrollLayer);
 
         this->schedule(schedule_selector(EditorWindowPopupHook::updateCustom));
 

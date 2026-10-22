@@ -47,6 +47,10 @@ struct EmotePickerPopupHook {
             return false;
         }
 
+        if (!settings::enabled) {
+            return true;
+        }
+
         auto fields = m_fields.self(self);
 
         self->addOnEnterCallback([self, fields] {
@@ -81,7 +85,7 @@ struct EmotePickerPopupHook {
 
         auto fields = m_fields.self(self);
 
-        if (!fields->scrollContent || !self->m_scrollLayer) {
+        if (!fields->scrollContent || !self->m_scrollLayer || ! fields->labels.front()) {
             return;
         }
 
