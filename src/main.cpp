@@ -12,6 +12,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         NineSlice* leftCorner = nullptr;
         NineSlice* rightCorner = nullptr;
         NineSlice* scrollbar = nullptr;
+        NineSlice* background = nullptr;
         CCSprite* closeButton = nullptr;
 
         bool mouseDown = false;
@@ -19,17 +20,23 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
     };
 
     static constexpr float CLOSE_OFFSET = 5.0f;
-    static constexpr float CORNER_OFFSET = 2.5f;
+    static constexpr float CORNER_OFFSET = 5.0f;
     static constexpr float BUTTON_SCALE_FACTOR = 1.26f;
     static constexpr float SCROLLBAR_OFFSET = 2.5f;
 
     void updateCustom(float) {
         auto fields = m_fields.self();
 
+        m_background->setVisible(false);
+
+        Setup(fields->background)
+            .pos(m_background)
+            .size(m_background);
+
         const auto width = (ui::w(m_background) / fields->topContainer->getScale()) - (ui::w(fields->topCenter) * 2);
         fields->topCenter->setScaleX(std::max(0.0f, width / ui::w(fields->topCenter)));
 
-        Setup(fields->topCenter)
+        Setup(fields->topContainer)
             .pos(ui::top(m_background))
             .updateLayout();
 
@@ -73,7 +80,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
 
         fields->closeButton->setPosition({
             ui::x(fields->topContainer) - ui::w(fields->topContainer) / 2 + CLOSE_OFFSET,
-            ui::x(fields->topContainer) + ui::h(fields->topContainer) - CLOSE_OFFSET
+            ui::y(fields->topContainer) + ui::h(fields->topContainer) - CLOSE_OFFSET
         });
 
         if (m_closeSprite) {
@@ -126,15 +133,13 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
 
         auto fields = m_fields.self();
 
-        const auto size = ui::size(m_background);
-        auto texture = CCTextureCache::get()->addImage(settings::noTopSeparator ? "background-no-line.png"_spr : "background.png"_spr, false);
-        m_background->setSpriteFrame(
-            CCSpriteFrame::createWithTexture(texture, {CCPointZero, texture->getContentSize()})
-        );
-        Setup(m_background)
+        fields->background = ui::nineSlice(settings::noTopSeparator ? "background-no-line.png"_spr : "background.png"_spr)
+            .size(m_background)
+            .pos(m_background)
+            .order(m_background)
             .color(settings::backgroundColor)
             .opacity(settings::opacity.get())
-            .size(size);
+            .parent(m_mainLayer);
 
         fields->closeButton = ui::frame(resources::frame::CLOSE_BUTTON)
             .id("custom-close-button"_spr)
@@ -178,7 +183,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
                     .color(settings::topBarColor)
                     .opacity(settings::opacity.get()),
                 fields->topCenter,
-                ui::sprite("top-bar-left.png"_spr)
+                ui::sprite("top-bar-right.png"_spr)
                     .color(settings::topBarColor)
                     .opacity(settings::opacity.get())
             )

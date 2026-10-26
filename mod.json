@@ -33,7 +33,7 @@
 		"background-color": {
 			"type": "rgb",
 			"name": "Background Color",
-			"default": [150, 150, 150]
+			"default": [50, 50, 50]
 		},
 		"top-bar-color": {
 			"type": "rgb",
@@ -64,7 +64,7 @@
 			"type": "bool",
 			"name": "No Top Separator",
 			"default": false,
-			"description": "remove the black line separating the top bar from the bottom bar"
+			"description": "remove the black line separating the top bar from the main content"
 		},
 		"close-button-scale": {
 			"type": "float",
