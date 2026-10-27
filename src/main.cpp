@@ -24,6 +24,10 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
     static constexpr float BUTTON_SCALE_FACTOR = 1.26f;
     static constexpr float SCROLLBAR_OFFSET = 2.5f;
 
+    static void onModify(auto& self) {
+        (void)self.setHookPriority("EditorWindowPopup::ccTouchBegan", Priority::Replace);
+    }
+
     void updateCustom(float) {
         auto fields = m_fields.self();
 
@@ -42,7 +46,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
 
         if (fields->scrollbar) {
             // the scroll bar can b deleted and shit so this is safer
-            auto scrollbarLayer = m_scrollLayer->getChildByType<CCLayerColor>();
+            auto scrollbarLayer = m_scrollContentLayer->getChildByType<CCLayerColor>();
 
             if (scrollbarLayer) {
                 const auto last = fields->lastScrollPos;
@@ -112,11 +116,11 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             const auto mousePos = this->m_mainLayer->convertToNodeSpace(cocos::getMousePos());
 
             toggleAction(
-                mousePos.fuzzyEquals(ui::bottomLeft(m_background), 12.0f / 2) && !fields->mouseDown, fields->leftCorner,
+                mousePos.fuzzyEquals(ui::bottomLeft(m_background), settings::specialZoneSize / 2) && !fields->mouseDown, fields->leftCorner,
                 [] { return CCFadeTo::create(0.25f, 0); }, [] { return CCFadeTo::create(0.25f, settings::cornerOpacity); }, !fields->mouseDown
             );
             toggleAction(
-                mousePos.fuzzyEquals({ui::bottomRight(m_background)}, 12.0f / 2) && !fields->mouseDown, fields->rightCorner,
+                mousePos.fuzzyEquals({ui::bottomRight(m_background)}, settings::specialZoneSize / 2) && !fields->mouseDown, fields->rightCorner,
                 [] { return CCFadeTo::create(0.25f, 0); }, [] { return CCFadeTo::create(0.25f, settings::cornerOpacity); }, !fields->mouseDown
             );
         }
@@ -194,7 +198,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             .order(10)
             .opacity(125)
             .scaleMultiplier(0.25f)
-            .parent(m_scrollLayer);
+            .parent(m_scrollContentLayer);
 
         this->schedule(schedule_selector(EditorWindowPopupHook::updateCustom));
 
@@ -204,6 +208,154 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             }
         });
         
+        return true;
+    }
+
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
+        if (!settings::enabled) {
+            return EditorWindowPopup::ccTouchBegan(touch, event);
+        }
+        
+        if (!this->isVisible()) {
+            return false;
+        }
+
+        const CCPoint location = touch->getLocation();
+        const auto size = CCSize{m_windowWidth, m_windowHeight} * m_windowScale;
+
+        if (m_touchID != -1) {
+            return CCRect{
+                ccSub(m_windowPosition - size / 2, settings::specialZoneSize / 2),
+                ccAdd(size, settings::specialZoneSize)
+            }.containsPoint(location);
+        }
+
+        if (m_inputNodes) {
+            for (auto [_, input] : CCDictionaryExt<int, CCTextInputNode*>(m_inputNodes)) {
+                if (input->m_selected) {
+                    input->onClickTrackNode(false);
+                }
+
+                if (!input->isVisible()) {
+                    continue;
+                }
+
+                const CCPoint local = input->convertToNodeSpace(location);
+                const CCSize size = input->getContentSize();
+
+                if (CCRect{-size / 2, size}.containsPoint(local)) {
+                    m_touchID = touch->getID();
+
+                    return true;
+                }
+            }
+        }
+
+        m_closeButtonRelease = false;
+
+        if (m_buttonMenu && m_buttonMenu->ccTouchBegan(touch, event)) {
+            m_menuTouch = true;
+            m_touchID = touch->getID();
+            
+            return true;
+        }
+
+        const auto inCloseButton = this->isInCloseButton(location);
+
+        if (
+            !CCRect{
+                ccSub(m_windowPosition - size / 2, settings::specialZoneSize / 2),
+                ccAdd(size, settings::specialZoneSize)
+            }.containsPoint(location) && !inCloseButton
+        ) {
+            return false;
+        }
+
+        m_touchID = touch->getID();
+
+        if (inCloseButton) {
+            m_closeButtonTouch = true;
+            m_contentTouch = false;
+
+            return true;
+        }
+
+        if (m_resizeMode != 0) {
+            int corner = 0;
+
+            if (
+                CCRect{
+                    ccSub(m_windowPosition - size / 2, settings::specialZoneSize / 2),
+                    CCSize{settings::specialZoneSize, settings::specialZoneSize}
+                }.containsPoint(location)
+            ) {
+                corner = 1;
+            }
+            else if (
+                CCRect{
+                    ccSub(CCPoint{m_windowPosition + CCSize{size.width, -size.height} / 2}, settings::specialZoneSize / 2),
+                    CCSize{settings::specialZoneSize, settings::specialZoneSize}
+                }.containsPoint(location)
+            ) {
+                corner = 2;
+            }
+            
+            if (corner != 0) {
+                m_resizeCorner = corner;
+
+                const auto side = corner == 1 ? -1.0f : 1.0f;
+                m_resizeAnchor = CCPoint{m_windowPosition.x - side * size.width / 2, m_windowPosition.y + size.height / 2};
+                m_resizeOffset = location - CCPoint{m_windowPosition.x + side * size.width / 2, m_windowPosition.y - size.height / 2};
+                m_contentTouch = false;
+
+                return true;
+            }
+        }
+
+        if (
+            CCRect{
+                ccSub(m_windowPosition + CCSize{-size.width, size.height} / 2, settings::specialZoneSize / 2),
+                CCSize{size.width + settings::specialZoneSize, settings::specialZoneSize}
+            }.containsPoint(location)
+        ) {
+            m_draggingWindow = true;
+            m_dragOffset = location - m_windowPosition;
+            m_contentTouch = false;
+
+            return true;
+        }
+
+        if (m_scrollContentLayer) {
+            const CCPoint local = m_scrollContentLayer->convertToNodeSpace(location);
+
+            if (
+                CCRect{
+                    CCPointZero, CCSize{m_scrollContentLayer->m_viewSize.width, m_scrollContentLayer->m_viewSize.height}
+                }.containsPoint(local)
+            ) {
+                m_scrollContentLayer->handleTouchBegan(touch);
+
+                if (m_scrollContentMenu && m_scrollContentMenu->ccTouchBegan(touch, event)) {
+                    m_contentTouch = true;
+                    
+                    return true;
+                }
+            }
+        }
+
+        m_contentTouch = false;
+
+        if (m_allowDraggingAnywhere) {
+            if (m_scrollContentLayer && touch->getID() == m_scrollContentLayer->m_touchID) {
+                m_scrollContentLayer->m_touchID = -1;
+                m_scrollContentLayer->m_velocity = 0.0f;
+                m_scrollContentLayer->m_isDragging = false;
+                m_scrollContentLayer->unscheduleUpdate();
+            }
+            
+            m_draggingWindow = true;
+            m_dragOffset = location - m_windowPosition;
+        }
         return true;
     }
 };

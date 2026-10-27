@@ -13,4 +13,5 @@ namespace settings {
     inline SettingCache<int> cornerOpacity{"corner-opacity"};
     inline SettingCache<bool> noTopSeparator{"no-top-separator"};
     inline SettingCache<float> closeButtonScale{"close-button-scale"};
+    inline SettingCache<float> specialZoneSize{"special-zone-size"};
 }
