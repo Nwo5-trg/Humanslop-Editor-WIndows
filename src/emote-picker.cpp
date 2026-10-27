@@ -1,10 +1,9 @@
+#include <Geode/modify/EmotePickerPopup.hpp>
 #include <nwo5.silly-api/include/include.hpp>
 #include "settings.hpp"
 
 using namespace geode::prelude;
 using namespace nwo5::prelude;
-
-#include <Geode/modify/EmotePickerPopup.hpp>
 
 class $modify(EmotePickerPopup) {
     struct Fields {
