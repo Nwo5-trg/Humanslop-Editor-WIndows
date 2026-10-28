@@ -66,6 +66,12 @@
 			"default": false,
 			"description": "remove the black line separating the top bar from the main content"
 		},
+		"lock-scale": {
+			"type": "bool",
+			"name": "Lock Scale",
+			"default": true,
+			"description": "keep close button and outline scaling consistent when resizing a popup with a locked asp3ect ration (e.g. grid controls)"
+		},
 		"close-button-scale": {
 			"type": "float",
 			"name": "Close Button Scale",
@@ -76,7 +82,7 @@
 		"special-zone-size": {
 			"type": "float",
 			"name": "Special Zone Size",
-			"default": 12,
+			"default": 20,
 			"min": 0,
 			"max": 100,
 			"description": "*diameter* of resize corners/top bar in points (basically, higher number means larger area u can resize/move window from)"

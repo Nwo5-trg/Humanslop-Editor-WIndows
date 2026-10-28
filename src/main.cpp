@@ -8,7 +8,7 @@ using namespace nwo5::prelude;
 class $modify(EditorWindowPopupHook, EditorWindowPopup) {
     struct Fields {
         CCNode* topContainer = nullptr;
-        CCSprite* topCenter = nullptr;
+        NineSlice* topCenter = nullptr;
         NineSlice* leftCorner = nullptr;
         NineSlice* rightCorner = nullptr;
         NineSlice* scrollbar = nullptr;
@@ -16,6 +16,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         CCSprite* closeButton = nullptr;
 
         bool mouseDown = false;
+        float lastWindowScale = 0.0f;
         CCPoint lastScrollPos = CCPointZero;
     };
 
@@ -33,9 +34,18 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
 
         m_background->setVisible(false);
 
+        const auto scaleFactor = 1.0f / (settings::lockScale ? m_mainLayer->getScale() : 1.0f);
+        
         Setup(fields->background)
+            .scaleMultiplier(scaleFactor)
             .pos(m_background)
             .size(m_background);
+
+        for (auto nineSlice : fields->topContainer->getChildrenExt<NineSlice>()) {
+            Setup(nineSlice)
+                .scaleMultiplier(scaleFactor)
+                .height(std::max(10.0f, (settings::specialZoneSize / 2)) * scaleFactor);
+        }
 
         const auto width = (ui::w(m_background) / fields->topContainer->getScale()) - (ui::w(fields->topCenter) * 2);
         fields->topCenter->setScaleX(std::max(0.0f, width / ui::w(fields->topCenter)));
@@ -83,8 +93,8 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         };
 
         fields->closeButton->setPosition({
-            ui::x(fields->topContainer) - ui::w(fields->topContainer) / 2 + CLOSE_OFFSET,
-            ui::y(fields->topContainer) + ui::h(fields->topContainer) - CLOSE_OFFSET
+            ui::x(fields->topContainer) - ui::w(fields->topContainer) / 2 + CLOSE_OFFSET * scaleFactor,
+            ui::y(fields->topContainer) + ui::h(fields->topContainer) - CLOSE_OFFSET * scaleFactor
         });
 
         if (m_closeSprite) {
@@ -94,14 +104,25 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
                 .hide();
         }
 
+        if (fields->lastWindowScale != m_windowScale) {
+            fields->lastWindowScale = m_windowScale;
+
+            fields->closeButton->setScale(settings::closeButtonScale * scaleFactor);
+        }
+
         toggleAction(
             m_closeSprite->getOpacity() != 255, fields->closeButton,
-            [] { return CCEaseBounceOut::create(CCScaleTo::create(0.4f, settings::closeButtonScale)); },
-            [] { return CCEaseBounceOut::create(CCScaleTo::create(0.4f, settings::closeButtonScale * BUTTON_SCALE_FACTOR)); }
+            [&] { return CCEaseBounceOut::create(CCScaleTo::create(0.4f, settings::closeButtonScale * scaleFactor)); },
+            [&] { return CCEaseBounceOut::create(CCScaleTo::create(0.4f, settings::closeButtonScale * scaleFactor * BUTTON_SCALE_FACTOR)); }
         );
 
-        fields->leftCorner->setPosition(ui::bottomLeft(m_background) - CORNER_OFFSET);
-        fields->rightCorner->setPosition(ui::right(m_background).x + CORNER_OFFSET, ui::bottom(m_background).y - CORNER_OFFSET);
+        Setup(fields->leftCorner)
+            .pos(ui::bottomLeft(m_background) - CORNER_OFFSET * scaleFactor)
+            .scale(scaleFactor);
+        
+        Setup(fields->rightCorner)
+            .pos(ui::right(m_background).x + CORNER_OFFSET * scaleFactor, ui::bottom(m_background).y - CORNER_OFFSET * scaleFactor)
+            .scale(scaleFactor);
 
         if (settings::alwaysShowResizeCorners) {
             Setup(fields->leftCorner)
@@ -138,6 +159,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         auto fields = m_fields.self();
 
         fields->background = ui::nineSlice(settings::noTopSeparator ? "background-no-line.png"_spr : "background.png"_spr)
+            .id("custom-background"_spr)
             .size(m_background)
             .pos(m_background)
             .order(m_background)
@@ -148,7 +170,6 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         fields->closeButton = ui::frame(resources::frame::CLOSE_BUTTON)
             .id("custom-close-button"_spr)
             .order(5)
-            .scale(settings::closeButtonScale)
             .parent(m_mainLayer);
 
         fields->leftCorner = ui::nineSlice("resize-corner-left.png"_spr)
@@ -170,7 +191,8 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             .parent(m_mainLayer);
 
         // for lack of a horizontal/vertical slice
-        fields->topCenter = ui::sprite("top-bar-center.png"_spr)
+        fields->topCenter = ui::nineSlice("top-bar-center.png"_spr)
+            .id("center-slice"_spr)
             .color(settings::topBarColor)
             .opacity(settings::opacity.get());
 
@@ -183,11 +205,13 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             .id("top-bar"_spr)
             .anchor(Anchor::Bottom)
             .children(
-                ui::sprite("top-bar-left.png"_spr)
+                ui::nineSlice("top-bar-left.png"_spr)
+                    .id("left-slice"_spr)
                     .color(settings::topBarColor)
                     .opacity(settings::opacity.get()),
                 fields->topCenter,
-                ui::sprite("top-bar-right.png"_spr)
+                ui::nineSlice("top-bar-right.png"_spr)
+                    .id("right-slice"_spr)
                     .color(settings::topBarColor)
                     .opacity(settings::opacity.get())
             )
@@ -211,6 +235,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         return true;
     }
 
+    // reimpl cctouchbegan so closebuttons gets targeted properly and also to apply specialzonesize
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) {
         if (!settings::enabled) {
             return EditorWindowPopup::ccTouchBegan(touch, event);
@@ -276,6 +301,10 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
         if (inCloseButton) {
             m_closeButtonTouch = true;
             m_contentTouch = false;
+
+            if (m_closeSprite) {
+                m_closeSprite->setOpacity(150);
+            }
 
             return true;
         }
