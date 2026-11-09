@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nwo5.silly-api/include/cache/include.hpp>
+#include <nwo5.silly-api/cache/include.hpp>
 
 using namespace nwo5::cache::prelude;
 

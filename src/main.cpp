@@ -1,5 +1,5 @@
 #include <Geode/modify/EditorWindowPopup.hpp>
-#include <nwo5.silly-api/include/include.hpp>
+#include <nwo5.silly-api/include.hpp>
 #include "settings.hpp"
 
 using namespace geode::prelude;
