@@ -41,18 +41,20 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             .pos(m_background)
             .size(m_background);
 
-        for (auto nineSlice : fields->topContainer->getChildrenExt<NineSlice>()) {
-            Setup(nineSlice)
-                .scaleMultiplier(scaleFactor)
-                .height(std::max(10.0f, (settings::specialZoneSize / 2)) * scaleFactor);
+        if (fields->topContainer) {
+            for (auto nineSlice : fields->topContainer->getChildrenExt<NineSlice>()) {
+                Setup(nineSlice)
+                    .scaleMultiplier(scaleFactor)
+                    .height(std::max(10.0f, (settings::specialZoneSize / 2)) * scaleFactor);
+            }
+
+            const auto width = (ui::w(m_background) / fields->topContainer->getScale()) - (ui::w(fields->topCenter) * 2);
+            fields->topCenter->setScaleX(std::max(0.0f, width / ui::w(fields->topCenter)));
+
+            Setup(fields->topContainer)
+                .pos(ui::top(m_background))
+                .updateLayout();
         }
-
-        const auto width = (ui::w(m_background) / fields->topContainer->getScale()) - (ui::w(fields->topCenter) * 2);
-        fields->topCenter->setScaleX(std::max(0.0f, width / ui::w(fields->topCenter)));
-
-        Setup(fields->topContainer)
-            .pos(ui::top(m_background))
-            .updateLayout();
 
         if (fields->scrollbar) {
             // the scroll bar can b deleted and shit so this is safer
@@ -92,9 +94,10 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             }
         };
 
+        auto closeButtonBase = fields->topContainer ? fields->topContainer : fields->background;
         fields->closeButton->setPosition({
-            ui::x(fields->topContainer) - ui::w(fields->topContainer) / 2 + CLOSE_OFFSET * scaleFactor,
-            ui::y(fields->topContainer) + ui::h(fields->topContainer) - CLOSE_OFFSET * scaleFactor
+            ui::x(closeButtonBase) - ui::w(closeButtonBase) / 2 + CLOSE_OFFSET * scaleFactor,
+            ui::y(closeButtonBase) + ui::h(closeButtonBase) - CLOSE_OFFSET * scaleFactor
         });
 
         if (m_closeSprite) {
@@ -158,12 +161,13 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
 
         auto fields = m_fields.self();
 
-        fields->background = ui::nineSlice(settings::noTopSeparator ? "background-no-line.png"_spr : "background.png"_spr)
+        const ZStringView bg = settings::noTopSeparator ? "background-no-line.png"_spr : "background.png"_spr;
+        fields->background = ui::nineSlice(settings::vanillaBackground ? resources::sprite::BACKGROUND : bg)
             .id("custom-background"_spr)
             .size(m_background)
             .pos(m_background)
             .order(m_background)
-            .color(settings::backgroundColor)
+            .color(settings::vanillaBackground ? *Col::White : settings::backgroundColor)
             .opacity(settings::opacity.get())
             .parent(m_mainLayer);
 
@@ -190,6 +194,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
             .opacity(0)
             .parent(m_mainLayer);
 
+        if (!settings::vanillaBackground) {
         // for lack of a horizontal/vertical slice
         fields->topCenter = ui::nineSlice("top-bar-center.png"_spr)
             .id("center-slice"_spr)
@@ -216,6 +221,7 @@ class $modify(EditorWindowPopupHook, EditorWindowPopup) {
                     .opacity(settings::opacity.get())
             )
             .parent(m_mainLayer);
+        }
 
         fields->scrollbar = ui::nineSlice("scrollbar.png"_spr)
             .anchor(Anchor::TopRight)

@@ -1,5 +1,5 @@
 {
-	"geode": "6.0.0-alpha.1",
+	"geode": "6.0.0-alpha.2",
 	"gd": {
 		"win": "2.2091",
 		"android": "2.2091",
@@ -30,15 +30,23 @@
 			"name": "Enabled",
 			"default": true
 		},
+		"vanilla-background": {
+			"type": "bool",
+			"name": "Vanilla Background",
+			"default": false,
+			"description": "use the default popup background instead of a custom one"
+		},
 		"background-color": {
 			"type": "rgb",
 			"name": "Background Color",
-			"default": [50, 50, 50]
+			"default": [50, 50, 50],
+			"enable-if": "!vanilla-background"
 		},
 		"top-bar-color": {
 			"type": "rgb",
 			"name": "Top Bar Color",
-			"default": [100, 100, 100]
+			"default": [100, 100, 100],
+			"enable-if": "!vanilla-background"
 		},
 		"opacity": {
 			"type": "int",
@@ -64,7 +72,8 @@
 			"type": "bool",
 			"name": "No Top Separator",
 			"default": false,
-			"description": "remove the black line separating the top bar from the main content"
+			"description": "remove the black line separating the top bar from the main content",
+			"enable-if": "!vanilla-background"
 		},
 		"lock-scale": {
 			"type": "bool",

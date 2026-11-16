@@ -6,6 +6,7 @@ using namespace nwo5::cache::prelude;
 
 namespace settings {
     inline SettingCache<bool> enabled{"enabled"};
+    inline SettingCache<bool> vanillaBackground{"vanilla-background"};
     inline SettingCache<cocos2d::ccColor3B> backgroundColor{"background-color"};
     inline SettingCache<cocos2d::ccColor3B> topBarColor{"top-bar-color"};
     inline SettingCache<int> opacity{"opacity"};
